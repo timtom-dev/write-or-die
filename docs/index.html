@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dr. TimTom's Write Or Die!</title>
+<style>
+    #goalForm {
+        display: block;
+    }
+    #writingArea {
+        width: 900px;
+        height: 900px;
+        min-width:200px;
+        padding: 10px;
+        margin-bottom:5px;
+    }
+    #writingArea:focus {
+        outline: none !important;
+    }
+    #output {
+        display: none;
+        background-color: rgb(227, 227, 227);
+        padding:10px;
+        margin:0 auto;
+        width:max-content;
+    }
+    #wordsRemaining {
+        float:right;
+    }
+</style>
+</head>
+<body>
+
+<div id="goalForm">
+    <h1>Dr. TimTom's Write Or Die!</h1>
+
+    <form action="#">
+        <label for="wordGoal">Word Goal:</label>
+        <input type="number" id="wordGoal" name="wordGoal" value="250" required><br><br>
+        
+        <label for="timeGoal">Time Goal (minutes):</label>
+        <input type="number" id="timeGoal" name="timeGoal" value="20" required><br><br>
+        
+        <label for="timeout">Erase Timeout (seconds):</label>
+        <input type="number" id="timeout" name="timeout" min="1" value="30" required><br><br>
+        
+        <input type="Button" value="Write!" onclick="startWriting(); return false;">
+    </form>
+</div>
+
+<div id="output">
+    <textarea id="writingArea" placeholder="Write here..."></textarea>
+    <div>
+        <span id="timeRemaining">0:00</span>
+        <span id="wordsRemaining">0</span>
+    </div>
+</div>
+
+<script>
+    var startTime;
+    var endTime;
+    var wordGoal;
+    var timeGoal;
+    var timeoutSeconds;
+    var wordsRemaining = 0;
+    var lastInputTime;
+    var updateInterval;
+
+    function startWriting() {
+        startTime = new Date();
+        lastInputTime = new Date(); // Initialize last input time
+
+        wordGoal = parseInt(document.getElementById('wordGoal').value);
+        timeGoal = parseInt(document.getElementById('timeGoal').value) * 60;
+        timeoutSeconds = parseInt(document.getElementById('timeout').value);
+
+        document.getElementById('goalForm').style.display = 'none';
+        document.getElementById('output').style.display = 'block';
+
+        endTime = new Date(startTime.getTime() + timeGoal * 1000);
+
+        updateWordsRemaining();
+        clearInterval(updateInterval); // Ensure no multiple intervals are running
+        updateInterval = setInterval(update, 500); // Run every half second
+    }
+
+    function update() {
+        var currentTime = new Date();
+
+        // Time remaining
+        var remainingTimeInSeconds = Math.floor((endTime - currentTime) / 1000);
+        var minutes = Math.floor(remainingTimeInSeconds / 60);
+        var seconds = remainingTimeInSeconds % 60;
+        document.getElementById('timeRemaining').innerText = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+
+        if (wordsRemaining <= 0 || currentTime >= endTime) {
+            clearInterval(updateInterval);
+            document.body.style.backgroundColor = 'green';
+            document.getElementById('timeRemaining').innerText = 'Goal Complete!';
+            return;
+        }
+
+        // Erasing timeout
+        var elapsedSinceLastInput = (currentTime - lastInputTime) / 1000;
+        if (elapsedSinceLastInput >= timeoutSeconds) {
+            var content = document.getElementById('writingArea').value;
+            if (content.length > 0) {
+                document.getElementById('writingArea').value = content.replace(/\s*\S+\s*$/, '');
+                updateWordsRemaining();
+            }
+        } else if (timeoutSeconds - elapsedSinceLastInput <= 5) {
+            var redness = 255 - Math.floor(255 * ((5 - (timeoutSeconds - elapsedSinceLastInput)) / 5));
+            document.body.style.backgroundColor = 'rgb(255,' + redness + ',' + redness +')';
+        }
+    }
+
+    function updateWordsRemaining() {
+        var content = document.getElementById('writingArea').value;
+        var words = content.match(/\S+/g);
+        wordsRemaining = wordGoal - (words ? words.length : 0);
+        document.getElementById('wordsRemaining').innerText = wordsRemaining;
+    }
+
+    document.getElementById('writingArea').addEventListener('input', function() {
+        lastInputTime = new Date(); // Update last input time on every input
+        if (wordsRemaining > 0) {
+            document.body.style.backgroundColor = 'white';
+        }
+        updateWordsRemaining();
+    });
+
+    window.addEventListener('beforeunload', function(e) {
+        if (document.getElementById('writingArea').value.trim() !== '') {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+</script>
+
+</body>
+</html>
